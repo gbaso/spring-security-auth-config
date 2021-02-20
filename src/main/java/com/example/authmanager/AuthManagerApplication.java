@@ -1,17 +1,17 @@
 package com.example.authmanager;
 
-import java.util.ArrayList;
-
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.actuate.health.HealthEndpoint;
+import org.springframework.boot.actuate.info.InfoEndpoint;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,27 +32,17 @@ class SecurityConfiguration {
 
 	@Bean
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		return http
-				.antMatcher("/**")
-				.authorizeRequests(authorize -> authorize.anyRequest()
-				.authenticated())
-				.formLogin()
-				.and()
-				.build();
+		return http.antMatcher("/**").authorizeRequests(authorize -> authorize
+				.requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll().anyRequest().authenticated())
+				.formLogin().and().build();
 	}
 
 	@Bean
-	AuthenticationManager authenticationManager(AuthenticationManagerBuilder auth) throws Exception {
-		return auth.build();
-	}
-
-	@Bean
-	UserDetailsService userDetailsService() {
+	InMemoryUserDetailsManager userDetailsManager() {
 		InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
-		manager.createUser(User.withDefaultPasswordEncoder().username("admin").password("admin").authorities(new ArrayList<>()).build());
+		manager.createUser(User.withUsername("admin").password("{noop}admin").roles("ADMIN").build());
 		return manager;
 	}
-
 
 }
 
@@ -60,8 +50,8 @@ class SecurityConfiguration {
 class Controller {
 
 	@GetMapping
-	public String hello() {
-		return "hello!";
+	public String hello(@AuthenticationPrincipal User user) {
+		return "hello " + user.getUsername() + "!";
 	}
 
 }
