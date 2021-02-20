@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.boot.actuate.info.InfoEndpoint;
+import org.springframework.boot.actuate.metrics.MetricsEndpoint;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,14 +33,18 @@ class SecurityConfiguration {
 
 	@Bean
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		return http.antMatcher("/**").authorizeRequests(authorize -> authorize
-				.requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll().anyRequest().authenticated())
-				.formLogin().and().build();
+		return http.authorizeRequests(authorize -> authorize
+						.requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
+						.requestMatchers(EndpointRequest.to(MetricsEndpoint.class)).hasRole("ADMIN")
+						.anyRequest().authenticated())
+				.formLogin().and()
+				.build();
 	}
 
 	@Bean
 	InMemoryUserDetailsManager userDetailsManager() {
 		InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
+		manager.createUser(User.withUsername("user").password("{noop}user").roles("USER").build());
 		manager.createUser(User.withUsername("admin").password("{noop}admin").roles("ADMIN").build());
 		return manager;
 	}
